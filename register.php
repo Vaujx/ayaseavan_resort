@@ -42,9 +42,13 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             // Hash password
             $hashed_password = password_hash($password, PASSWORD_DEFAULT);
             
-            // Insert new user
-            $insertQuery = "INSERT INTO users (username, email, password, first_name, last_name, contact_number, address, user_type) 
-                            VALUES (:username, :email, :password, :first_name, :last_name, :contact_number, :address, 'customer')";
+            // OPTION 1: Modify the SQL to not specify user_type (if it has a default value)
+            $insertQuery = "INSERT INTO users (username, email, password, first_name, last_name, contact_number, address) 
+                            VALUES (:username, :email, :password, :first_name, :last_name, :contact_number, :address)";
+            
+            // OPTION 2: If you need to specify a valid user_type value, uncomment this and use a known valid value
+            // $insertQuery = "INSERT INTO users (username, email, password, first_name, last_name, contact_number, address, user_type) 
+            //                VALUES (:username, :email, :password, :first_name, :last_name, :contact_number, :address, 'user')";
             
             $stmt = $conn->prepare($insertQuery);
             $params = [
@@ -57,10 +61,14 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 'address' => $address
             ];
             
-            if ($stmt->execute($params)) {
-                $success = "Registration successful! You can now login.";
-            } else {
-                $error = "Error creating account: " . implode(", ", $stmt->errorInfo());
+            try {
+                if ($stmt->execute($params)) {
+                    $success = "Registration successful! You can now login.";
+                } else {
+                    $error = "Error creating account: " . implode(", ", $stmt->errorInfo());
+                }
+            } catch (PDOException $e) {
+                $error = "Database error: " . $e->getMessage();
             }
         }
     }
